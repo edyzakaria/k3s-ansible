@@ -81,6 +81,12 @@ Start provisioning of the cluster using the following command:
 ansible-playbook site.yml -i inventory/my-cluster/hosts.ini
 ```
 
+Get the config. 
+```bash
+scp blade@192.168.0.21:~/.kube/config ~/.kube/config
+```
+
+
 After deployment control plane will be accessible via virtual ip-address which is defined in inventory/group_vars/all.yml as `apiserver_endpoint`
 
 ### 🔥 Remove k3s cluster
