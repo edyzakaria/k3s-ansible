@@ -81,12 +81,6 @@ Start provisioning of the cluster using the following command:
 ansible-playbook site.yml -i inventory/my-cluster/hosts.ini
 ```
 
-Get the config. 
-```bash
-scp blade@192.168.0.21:~/.kube/config ~/.kube/config
-```
-
-
 After deployment control plane will be accessible via virtual ip-address which is defined in inventory/group_vars/all.yml as `apiserver_endpoint`
 
 ### 🔥 Remove k3s cluster
@@ -102,8 +96,10 @@ ansible-playbook reset.yml -i inventory/my-cluster/hosts.ini
 To copy your `kube config` locally so that you can access your **Kubernetes** cluster run:
 
 ```bash
-scp debian@master_ip:/etc/rancher/k3s/k3s.yaml ~/.kube/config
+scp blade@master_ip:/etc/rancher/k3s/k3s.yaml ~/.kube/config
 ```
+*master_ip is the tls_san --> 192.168.0.50
+
 If you get file Permission denied, go into the node and temporarly run:
 ```bash
 sudo chmod 777 /etc/rancher/k3s/k3s.yaml
@@ -117,7 +113,41 @@ You'll then want to modify the config to point to master IP by running:
 ```bash
 sudo nano ~/.kube/config
 ```
-Then change `server: https://127.0.0.1:6443` to match your master IP: `server: https://192.168.1.222:6443`
+
+## Additional note 6 Mar 2025.
+Then change `server: https://127.0.0.1:6443` to match your master IP: `server: https://192.168.0.50:6443`
+
+Uninstall k3s.
+```bash
+sudo /usr/local/bin/k3s-uninstall.sh
+```
+
+Get node token by going inside into the control plane:
+```bash
+sudo cat /var/lib/rancher/k3s/server/node-token
+```
+
+Add new agent:
+```bash
+curl -sfL https://get.k3s.io | K3S_URL=https://192.168.0.50:6443 K3S_TOKEN=<NODE_TOKEN> sh -
+```
+
+Add new control plane (untested):
+```bash
+curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="server --server https://192.168.0.50:6443 \
+  --token <NODE_TOKEN> --node-ip=<NEW_NODE_IP> --node-taint node-role.kubernetes.io/master=true:NoSchedule \
+  --flannel-backend=none --disable-network-policy --cluster-cidr=10.52.0.0/16 --tls-san <NEW_NODE_IP> \
+  --disable servicelb --disable traefik" sh -
+```
+
+Example:
+```bash
+blade@cp04:~$ curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="server --server https://192.168.0.50:6443 \
+  --token K10b891d663b169bbc1f259c0afd8cbd0be2fdd3de60b36437feb7aa5661a9755ef::server:some-SUPER-DEDEUPER-secret-password --node-ip=192.168.0.27 --node-taint node-role.kubernetes.io/master=true:NoSchedule \
+  --flannel-backend=none --disable-network-policy --cluster-cidr=10.52.0.0/16 --tls-san 192.168.0.50 \
+  --disable servicelb --disable traefik" sh -
+```
+
 
 ### 🔨 Testing your cluster
 
