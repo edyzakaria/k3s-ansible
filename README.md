@@ -132,7 +132,7 @@ Add new agent:
 curl -sfL https://get.k3s.io | K3S_URL=https://192.168.0.50:6443 K3S_TOKEN=<NODE_TOKEN> sh -
 ```
 
-Add new control plane (untested):
+Add new control plane:
 ```bash
 curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="server --server https://192.168.0.50:6443 \
   --token <NODE_TOKEN> --node-ip=<NEW_NODE_IP> --node-taint node-role.kubernetes.io/master=true:NoSchedule \
@@ -147,6 +147,52 @@ blade@cp04:~$ curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="server --server h
   --flannel-backend=none --disable-network-policy --cluster-cidr=10.52.0.0/16 --tls-san 192.168.0.50 \
   --disable servicelb --disable traefik" sh -
 ```
+
+## Removeing WORKER nodes:
+K3s cluster. Here's how to do it:
+
+On the worker node:   
+Stop the K3s agent service:
+
+```bash
+sudo systemctl stop k3s-agent
+```
+
+Uninstall K3s:
+
+```bash
+sudo /usr/local/bin/k3s-agent-uninstall.sh
+```
+
+(This script is usually created by the K3s installation process.)
+
+Alternatively, if the script is missing or doesn't work, you can manually remove the K3s binaries and directories:
+
+```bash
+sudo rm -rf /usr/local/bin/k3s
+sudo rm -rf /var/lib/rancher/k3s
+sudo rm /etc/systemd/system/k3s-agent.service
+sudo systemctl daemon-reload
+```
+
+On the control plane:
+Use kubectl to delete the node. First, get the node's name:
+
+```bash
+sudo k3s kubectl get nodes
+```
+
+Then, delete the node:
+
+```bash
+sudo k3s kubectl delete node <WORKER_NODE_NAME>
+```
+
+Replace <WORKER_NODE_NAME> with the actual name of the worker node you want to remove.
+
+
+
+
 
 
 ### 🔨 Testing your cluster
